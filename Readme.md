@@ -8,8 +8,8 @@ Elle recherche les paquets Nuget et NPM.
 
 ## Avec Docker
 ```
-docker build -f dockerfileForTesting -
-docker run -d
+docker build . -t soupdicover:latest
+docker run -d -P soupdicover:latest
 ```
 
 ## En local
