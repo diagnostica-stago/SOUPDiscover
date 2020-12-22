@@ -41,3 +41,13 @@ export class PackageDto {
    */
   projectUrl: string;
 }
+
+export class PackageWithProjectDto {
+  /**
+   * The package 
+   * */
+  packageDto: PackageDto;
+
+  projectNames: string[];
+
+}

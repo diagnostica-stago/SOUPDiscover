@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { PackageDto } from '../model/package';
+import { PackageDto, PackageWithProjectDto } from '../model/package';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -30,8 +30,21 @@ export class PackagesService {
   }
 
   /**
- * Return the url that permit to download csv file of the project
- * */
+   * Return list of project that use this version of the package
+   * @param packageId
+   * Id of the package to search
+   * @param packageVersion
+   * version of the package to search
+   */
+  public GetParentPackage(packageId: string, packageVersion: string): Observable<PackageWithProjectDto> {
+    let request = this.packagesApiEndpoint + 'filter?packageId=' + packageId;
+    request = request + '&packageVersion=' + packageVersion;
+    return this.httpClient.get<PackageWithProjectDto>(request);
+  }
+
+  /**
+   * Return the url that permit to download csv file of the project
+   * */
   GetCsvUrl(projectId: string): string {
     return this.packagesApiEndpoint + 'exporttocsv/' + projectId;
   }
