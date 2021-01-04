@@ -48,6 +48,8 @@ export class PackageWithProjectDto {
    * */
   packageDto: PackageDto;
 
+  /*
+   * All project name where is found the package
+   */
   projectNames: string[];
-
 }

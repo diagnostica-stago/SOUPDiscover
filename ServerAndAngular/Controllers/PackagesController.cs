@@ -129,7 +129,7 @@ namespace SoupDiscover.Controllers
             {
                 return Problem($"Project Id not defined!");
             }
-            var csvStream = ExportPackagesToCsvFile(projectId);
+            var csvStream = ExportPackagesFromProject(projectId);
             if (csvStream == null)
             {
                 return Problem($"Unable to find the project {projectId}");
@@ -137,12 +137,79 @@ namespace SoupDiscover.Controllers
             return File(csvStream, "text/plain", $"{projectId}.csv");
         }
 
+        [HttpGet("searchpackage/{packageId}")]
+        public async Task<ActionResult> SearchPackageFromId(string packageId)
+        {
+            if (string.IsNullOrEmpty(packageId))
+            {
+                return Problem($"Project Id not defined!");
+            }
+            var package = SearchPackage(packageId);
+            return CreatedAtAction("searchPackage", package);
+        }
+
+        public IEnumerable<(Package packageDto, string[] projectNames)> SearchPackage(string packageId)
+        {
+            if (string.IsNullOrEmpty(packageId))
+            {
+                throw new ApplicationException("You must set at least 3 char.");
+            }
+            var package = from p1 in _context.PackageConsumer
+                          join p2 in _context.PackageConsumerPackages on p1.PackageConsumerId equals p2.PackageConsumerId
+                          where p2.Package.PackageId.Contains(packageId)
+                          select new { p1.ProjectId, p2.Package };
+            var packageDico = new Dictionary<Package, List<string>>();
+            foreach (var p in package)
+            {
+                List<string> list;
+                if (!packageDico.ContainsKey(p.Package))
+                {
+                    list = new List<string>();
+                    packageDico.Add(p.Package, list);
+                }
+                else
+                {
+                    list = packageDico[p.Package];
+                }
+                list.Add(p.ProjectId);
+            }
+            return packageDico.Select(p => 
+            (
+                packageDto: p.Key,
+                projectNames: p.Value.ToArray()
+            ));
+        }
 
         /// <summary>
+        /// Create a CVS of packages found
+        /// </summary>
+        /// <param name="packageId">The package id must contains</param>
+        /// <param name="delimiter"></param>
+        /// <returns></returns>
+        private Stream ExportPackagesFromSearch(string packageId, char delimiter = ';')
+        {
+            var packages = SearchPackage(packageId);
+            var baseStream = new MemoryStream();
+            var stream = new StreamWriter(baseStream, System.Text.Encoding.UTF8);
+            stream.NewLine = "\r\n";// RFC 4180
+            // Create header
+            stream.WriteLine(CSVFileHelper.SerializeToCvsLine(new string[] { "PackageId", "Version", "Type", "Description", "License", "Projets" }, delimiter));
+            foreach (var p in packages)
+            {
+                stream.WriteLine(CSVFileHelper.SerializeToCvsLine(new string[] { p.packageDto.PackageId, p.packageDto.Version, p.packageDto.PackageType.ToString(), p.packageDto.Description, p.packageDto.Licence, p.projectNames }, delimiter));
+            }
+            stream.Flush(); // Empty the stream to the base stream
+            // Don't close the StreamWriter, this will close the base stream
+            baseStream.Seek(0, SeekOrigin.Begin); // Move the position to the start of the stream
+            return baseStream;
+        }
+
+        /// <summary>
+        /// Create a cvs file that contains all packages of project
         /// Create a stream that contains the csv file
         /// </summary>
         /// <param name="projectId">Id of the project</param>
-        private Stream ExportPackagesToCsvFile(string projectId, char delimiter = ';')
+        private Stream ExportPackagesFromProject(string projectId, char delimiter = ';')
         {
             var project = _context.Projects.Find(projectId);
             if (project == null)

@@ -48,4 +48,9 @@ export class PackagesService {
   GetCsvUrl(projectId: string): string {
     return this.packagesApiEndpoint + 'exporttocsv/' + projectId;
   }
+
+  SearchPackage(packageId: string): Observable<PackageWithProjectDto[]> {
+    let request = this.packagesApiEndpoint + "searchpackage/" + packageId;
+    return this.httpClient.get<PackageWithProjectDto[]>(request);
+  }
 }
